@@ -9,6 +9,7 @@ library(tidyverse)
 library(reshape)
 library(data.table)
 library(plotly)
+library(pryr)
 
 # Set working directory
 current_path <- getActiveDocumentContext()$path
@@ -129,8 +130,8 @@ complete_years$minute <- minute(complete_years$DateTime)
 complete_years$is_weekend <- is.weekend(complete_years$date)
 
 # Filtering only complete years
-complete_years <- filter(complete_years, DateTime >= "2007-01-01 00:00:00",
-                         DateTime < "2010-01-01 00:00:00")
+#complete_years <- filter(complete_years, DateTime >= "2007-01-01 00:00:00",
+#                         DateTime < "2010-01-01 00:00:00")
 
 
 # Select variables
@@ -160,19 +161,6 @@ ggplot(filter(complete_years, year == 2007, month == 2, day == 1),
   geom_point(aes(y = kitchen), color = "blue") +
   geom_point(aes(y = laundry), color = "red") + 
   geom_point(aes(y = HVAC), color = "orange")
-
-ggplot(filter(complete_years, year == 2007, month == 2, day >= 1, day <= 7), 
-       aes(x = hour)) + geom_point(aes(y = Sub_metering_1))
-
-# Plotting 2007, February, 1st - 7th
-ggplot(filter(complete_years, year == 2007, month == 2, day == 1), 
-       aes(x = DateTime)) + 
-  geom_point(aes(y = Sub_metering_1), color = "blue") +
-  geom_point(aes(y = Sub_metering_2), color = "red") + 
-  geom_point(aes(y = Sub_metering_3), color = "orange") +
-  geom_point(aes(y = Sub_metering_4), color = "violet") +
-  guides(color = "legend") +
-  theme(legend.position = "right")
 
 ggplot(filter(complete_years, year == 2007, month == 2, day >= 1, day <= 7), 
        aes(x = hour)) + geom_point(aes(y = Sub_metering_1))
@@ -212,16 +200,6 @@ energy_year <- summarise(by_year, kwh = sum(power/60),
                          laundry_kwh = sum(laundry/1000),
                          HVAC_kwh = sum(HVAC/1000), 
                          rest_kwh = sum(rest/1000))
-
-# Plotting per hour
-ggplot(filter(consumption_hour, year == 2007, month == 2, day == 1), 
-       aes(x = DateTime)) + 
-  geom_point(aes(y = Sub_metering_1), color = "blue") +
-  geom_point(aes(y = Sub_metering_2), color = "red") + 
-  geom_point(aes(y = Sub_metering_3), color = "orange") +
-  geom_point(aes(y = Sub_metering_4), color = "violet") +
-  guides(color = "legend") +
-  theme(legend.position = "right")
 
 # Plotting load profile 2007, Feb, 1st
 ggplot(filter(complete_years, year == 2007, week == 5), 
@@ -318,11 +296,53 @@ scale_x_tim
 
 class(energy_hour_melt$hour)
  ?strptime
- # Using plotly
-winter_day <- filter(energy_hour, year == 2007, month == 2, day == 1)
-plot_ly(winter_day, x = ~winter_day$hour, y = ~winter_day$kitchen_wh,
-        type = "bar", mode = "bar", name = "kitchen") %>%
-  add_trace(y = ~winter_day$laundry_wh, name = "laundry") %>% 
-  add_trace(y =  ~winter_day$HVAC_wh, name = "HVAC & water heating") %>%
-  add_trace(y = ~winter_day$rest_wh, name = "rest") %>% 
-  layout(title = "Energy consumption share on 01.02.2007", )
+
+# Using plotly
+# Winter day per hour
+winter_day_hour <- filter(energy_hour, year == 2007, month == 2, day == 1)
+plot_ly(winter_day_hour, 
+        x = ~winter_day_hour$hour, 
+        y = ~winter_day_hour$kitchen_wh,
+        type = "bar", mode = "bar", 
+        name = "kitchen") %>%
+  add_trace(y = ~winter_day_hour$laundry_wh, name = "laundry") %>% 
+  add_trace(y =  ~winter_day_hour$HVAC_wh, name = "HVAC & water heating") %>%
+  add_trace(y = ~winter_day_hour$rest_wh, name = "rest") %>% 
+  layout(title = "Energy consumption share on 01.02.2007", 
+         xaxis = list(title = "Time of the day"),
+         yaxis = list(title = "energy consumption in wh"))
+
+# Same winter day per minute
+winter_day_minute <- filter(complete_years, year == 2007, month == 2, day == 1)
+plot_ly(winter_day_minute, 
+        x = ~winter_day_minute$DateTime, 
+        y = ~winter_day_minute$kitchen,
+        type = "scatter", 
+        mode = "lines", 
+        name = "kitchen") %>%
+  add_trace(y = ~winter_day_minute$laundry, name = "laundry") %>% 
+  add_trace(y =  ~winter_day_minute$HVAC, name = "HVAC & water heating") %>%
+  add_trace(y = ~winter_day_minute$rest, name = "rest") %>% 
+  layout(title = "Energy consumption share on 01.02.2007", 
+         xaxis = list(title = "Time of the day"),
+         yaxis = list(title = "energy consumption in wh"))
+
+# Same winter day every 10 min
+winter_day_10min <- filter(complete_years, 
+                           year == 2007 & month == 2 & 
+                             day == 1 & 
+                             (minute == 0 | minute == 10 | minute == 20 |  
+                                minute == 30 | minute == 40 | minute == 50))
+
+plot_ly(winter_day_10min, 
+        x = ~winter_day_10min$DateTime, 
+        y = ~winter_day_10min$kitchen,
+        type = "scatter", 
+        mode = "lines", 
+        name = "kitchen") %>%
+  add_trace(y = ~winter_day_10min$laundry, name = "laundry") %>% 
+  add_trace(y =  ~winter_day_10min$HVAC, name = "HVAC & water heating") %>%
+  add_trace(y = ~winter_day_10min$rest, name = "rest") %>% 
+  layout(title = "Energy consumption share on 01.02.2007", 
+         xaxis = list(title = "Time of the day"),
+         yaxis = list(title = "energy consumption in wh"))
