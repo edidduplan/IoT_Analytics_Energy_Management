@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1573652377597.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A797975B",
+    "lastKnownWriteTime" : 1573646738,
+    "last_content_update" : 1573652377597,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "9663C7F0",
+        "caption" : "energy_hour",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=energy_hour&cache_key=9663C7F0",
+        "displayedObservations" : 26171,
+        "environment" : "",
+        "expression" : "energy_hour",
+        "object" : "energy_hour",
+        "preview" : 0,
+        "totalObservations" : 26171,
+        "variables" : 8
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
