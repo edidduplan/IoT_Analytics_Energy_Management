@@ -66,3 +66,25 @@ autoplot(ts_train) +
   ggtitle("Forecasts for Global active power in kw") +
   guides(colour=guide_legend(title="Forecast"))
 
+#---------------------- Function to get forecast error metrics ----------------
+
+train_forecast_month <- function(col){
+  ts <- ts(col, frequency = 12, start = 2007)
+  ts_train <- window(ts, start = 2007, end =c(2010, 9))
+  ts_test <- window(ts, start = c(2010, 9))
+  ts_train_arima <- auto.arima(ts_train, approximation=FALSE, stepwise=FALSE)
+  fc_ts_train_snaive <- snaive(ts_train, h = 2)
+  fc_ts_train_arima <- forecast::forecast(ts_train_arima, 2)
+  acc <- rbind(accuracy(fc_ts_train_arima, ts_test), 
+               accuracy(fc_ts_train_snaive, ts_test))
+  return(list(fc_arima = fc_ts_train_arima, fc_snaive = fc_ts_train_snaive, 
+              accuracy = acc, test = ts_test))
+}
+
+
+train_total_month <- train_forecast_month(energy_month$total_kwh)
+autoplot(train_total_month[["fc_arima"]]) +
+  autolayer(train_total_month[["test"]])
+
+ts <- ts(energy_month$total_kwh, frequency = 12, start = 2007)
+autoplot(ts)

@@ -213,17 +213,12 @@ id_NA <- which(is.na(complete_years$GAP_km_2))
 
 complete_years[id_NA, "GAP_km_2"] <- complete_years[id_NA - 10080, "GAP_km_2"] 
 
-any(is.na(complete_years_test$GAP_km_2))
+any(is.na(complete_years$GAP_km_2))
 
 #---------------------- Replacing NAs in SM1---------------------------
 
-complete_years$SM1_km_2 <- na_kalman(complete_years$Sub_metering_1, 
-                                     model = "auto.arima", maxgap = 200)
-
-id_NA <- which(is.na(complete_years$SM1_km_2))
-
-complete_years[id_NA, "SM1_km_2"] <- complete_years[id_NA - 10080, "SM1_km_2"] 
-
+SM1_km_2 <- read.csv("ks_nas/SM1_km_2.csv")
+complete_years$SM1_km_2 <- SM1_km_2$x
 
 # Plotting predicitons of KS in SM1
 
@@ -253,8 +248,11 @@ plot(filter(complete_years, date == "2007-04-30")$DateTime,
      filter(complete_years, date == "2007-04-30")$SM1_km_2)
 
 #----------------- Original dataframe without NAs ----------------------
-complete_years$SM2_km_2 <- SM2_ks_2[[2]]
-complete_years$SM3_km_2 <- SM3_ks_2[[2]]
+SM2_km_2 <- read.csv("ks_nas/SM2_km_2.csv")
+SM3_km_2 <- read.csv("ks_nas/SM3_km_2.csv")
+
+complete_years$SM2_km_2 <- SM2_km_2[[2]]
+complete_years$SM3_km_2 <- SM3_km_2[[2]]
 
 #===================== Feature engineering II ==============================
 
@@ -314,6 +312,15 @@ energy_hour <- summarise(by_hour,
                          total_wh = sum(total),
                          power_kw = mean(power))
 
+#-------------------------- Summirising per hour - kwh -----------------------------
+energy_hour_kwh <- summarise(by_hour, 
+                         kitchen_kwh = sum(kitchen)/1000, 
+                         laundry_kwh = sum(laundry)/1000, 
+                         HVAC_kwh = sum(HVAC)/1000, 
+                         rest_kwh = sum(rest)/1000,
+                         total_kwh = sum(total)/1000,
+                         power_kw = mean(power))
+
 #------------------------- Summarising per day  -----------------------------
 energy_day <- summarise(by_day, kitchen_wh = sum(kitchen), 
                         laundry_wh = sum(laundry), 
@@ -355,6 +362,15 @@ energy_hour$som_eur_x10000 <- energy_hour$som_eur * 10000
 energy_hour$hluz_eur <- .136
 
 energy_hour$hluz_eur_x10000 <- energy_hour$hluz_eur * 10000
+
+#--------------------- Doing the same for kwh -----------------------------
+energy_hour_kwh <- energy_hour
+energy_hour_kwh <- mutate(energy_hour_kwh, 
+                             kitchen_kwh = kitchen_wh /1000, 
+                             laundry_kwh = laundry_wh /1000, 
+                             HVAC_kwh = HVAC_wh /1000, 
+                             rest_kwh = rest_wh /1000,
+                             total_kwh = total_wh /1000) 
 
 
 #============================ Plots =========================================
@@ -555,3 +571,39 @@ ggplot(filter(summer_2008_minute, day == 18, hour == 12), aes(x = DateTime)) +
   geom_line(aes(y = laundry), color = "blue") +
   geom_line(aes(y = HVAC), color = "orange") +
   geom_line(aes(y = rest), color = "violet")
+
+#====================== Preparing data for Tableau =======================
+energy_minute_for_melt <- select(complete_years, DateTime, kitchen,
+                               laundry, HVAC, rest, total)
+
+energy_minute_melt <- melt(energy_minute_for_melt, id.vars = "DateTime")
+colnames(energy_minute_melt) <- c("DateTime", "sub_meter", "consumption_wh")
+
+energy_minute_melt_filter <- filter(energy_minute_melt, DateTime > "2010-10-01 0:00:00")
+
+write.csv(energy_minute_melt, "energy_minute_melt.csv")
+
+
+sum_2007 <- 
+  apply(
+    filter(
+      energy_minute_for_melt, 
+      year(DateTime) == 2007
+      )[2:ncol(energy_minute_for_melt)],
+    MARGIN = 2, 
+    sum
+    )
+
+energy_minute_melt %>% 
+  filter((sub_meter == "rest"))%>% 
+  select(consumption_wh) %>% sum() %>% print()
+
+#------------------ Trying with per hour ---------------------------
+energy_hour_for_melt <- select(as.data.frame(energy_hour_kwh), DateTime_hour, 
+                               kitchen_kwh, laundry_kwh, HVAC_kwh, rest_kwh, 
+                               total_kwh, som_eur, hluz_eur)
+
+energy_hour_melt <- melt(energy_hour_for_melt, id.vars = "DateTime_hour")
+colnames(energy_hour_melt) <- c("DateTime", "sub_meter", "consumption_kwh")
+
+write.csv(energy_hour_for_melt, "energy_hour_for_melt.csv")
